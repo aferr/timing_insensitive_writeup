@@ -28,6 +28,9 @@
 \usepackage{amssymb} % Math packages
 \usepackage{graphicx}
 \usepackage{listings}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{mathpartir}
 
 %\usepackage{stmaryrd}
 %\usepackage{mathrsfs}
@@ -70,7 +73,7 @@
 
 \title{	\normalfont \normalsize 
 %\textsc{university, school or department name} \\ [25pt] % Your university, 
-    %school and/or department name(s)
+%school and/or department name(s)
 \horrule{0.5pt} \\[0.4cm] % Thin top horizontal rule
 \huge Timing Insensitive Noninterference\\ % The assignment title
 \horrule{2pt} \\[0.5cm] % Thick bottom horizontal rule
@@ -131,7 +134,8 @@ produce trace $T$ in initial state $\sigma$. Note that a program can produce
 multiple traces. Observational determinism of program $Prog$ holds if for any 
 $\sigma_1$ and $\sigma_2$
 \begin{align}
-    \sigma_1 \approx_L \sigma_2 \wedge \langle\sigma_1,Prog\rangle \hookrightarrow T_1
+    \sigma_1 \approx_L \sigma_2 \wedge \langle\sigma_1,Prog\rangle 
+    \hookrightarrow T_1
     \wedge \langle\sigma_2,Prog\rangle \hookrightarrow T_2 \\
     \Longrightarrow T_1 \approx_L T_2
 \end{align}
@@ -151,8 +155,7 @@ portion of the program is deemed insecure.
 
 The restrictiveness of timing sensitivity at the hardware level can be 
 illustrated with the simple FSM of Figure 1 where l is attacker-observable, but 
-h is not. Consider 
-low-equivalent initial states $\sigma_1=\{(h,0),(l,0)\}$ and
+h is not. Consider low-equivalent initial states $\sigma_1=\{(h,0),(l,0)\}$ and
 $\sigma_2=\{(h,1),(l,0)\}$. This FSM is deterministic, so it produces one trace 
 in each state,
 \begin{align*}
@@ -161,12 +164,12 @@ in each state,
 \langle Prog, \sigma_2 \rangle &\hookrightarrow
 (1, \sigma_2), (2, \sigma_2), (3, \sigma_2[l\mapsto1])
 \end{align*}
-Clearly, these traces are not low-equivalent since at cycle 2 $\sigma_1$ transitions to 
-a state where l is 1, but $\sigma_2$ does not. However, if we assume clock 
-transitions are fast and measurements by the attacker are not precise enough to 
-distinguish events on a per-cycle basis, this appears overly restrictive. To 
-such an attacker it appears as though in both cases the system instantly 
-proceeds to a state with $l=1$.
+Clearly, these traces are not low-equivalent since at cycle 2 $\sigma_1$ 
+transitions to a state where l is 1, but $\sigma_2$ does not. However, if we 
+assume clock transitions are fast and measurements by the attacker are not 
+precise enough to distinguish events on a per-cycle basis, this appears overly 
+restrictive. To such an attacker it appears as though in both cases the system 
+instantly proceeds to a state with $l=1$.
 
 \begin{lstlisting}[frame=single,caption=An Arbiter in Verilog.]
 always @(state, req_1, req_2) begin
@@ -184,20 +187,21 @@ assign grant_1 = (state == 1);
 assign grant_2 = (state == 2);
 \end{lstlisting}
 
-As a more practical example, Figure 2 shows a verilog code segment for an 
+As a more practical example, Listing 1 shows a verilog code segment for an 
 arbiter that grants requests for a high confidentiality module and a low 
 confidentiality module. Whether or not the high confidentiality module has a 
 request is considered a secret.
 The typing environment is
-$\Gamma = \tt{\{(state, h), (req_1, h), (grant_1, h), (req_2, l), (grant_2, l)\}}$.
+$\Gamma = \tt{\{(state, h), (req_1, h), (grant_1, h), (req_2, l), (grant_2, 
+l)\}}$.
 Whether or not there is a request on $req_1$ can affect \emph{when} there is a 
 grant in response to $req_2$, but since this arbiter prevents starvation, there 
 will always be a response either way. As one would expect, this module produces 
 unequal traces because of a timing channel. Consider initial states
 $\sigma_1 = \{(\tt{req_1}, 1), (\tt{req_2}, 1), (\tt{state}, 0), \dots\}$ and
-$\sigma_2 = \{(\tt{req_1}, 0), (\tt{req_2}, 1), (\tt{state}, 0), \dots\}$ (where the grants 
-have the appropriate values). Assuming the inputs 
-do not change, with each of these states the program generates the traces
+$\sigma_2 = \{(\tt{req_1}, 0), (\tt{req_2}, 1), (\tt{state}, 0), \dots\}$ 
+(where the grants have the appropriate values). Assuming the inputs do not 
+change, with each of these states the program generates the traces
 \begin{align*}
   \langle Prog, \sigma_1 \rangle & \hookrightarrow
   \tt
@@ -212,46 +216,123 @@ which are unequal. However, with both initial states $grant_2$ is eventually
 $1$ after the request is issued, so this just a timing channel.
 
 \section{Timing Insensitivity with High-Stutter Equivalence}
-Myers et. al. propose a formulation of noninterference that does not consider 
+In ``Enforcing Robust Declassification and Qualified Robustness'' Myers et. al. propose a formulation
+of noninterference that does not consider 
 timing channels by comparing the $l$-projection of traces. Essentially, the 
 $l$-projection of a trace is constructed from a trace by first producing the 
 sequence of only the $l$ or lower parts of the states. Then, for any adjacent 
 pair of low-equivalent states, all but the first is dropped. The end result is 
-a sequence expressing just the states that appear different to the attacker. 
-They are ordered chronologically, but otherwise there is no concept of time. 
+a sequence expressing just the states that appear different to the attacker 
+ordered chronologically.  
 
 Two traces are said to be high-stutter equivalent if their $l$-projections are 
-equal. The formulation of noninterference in Equation 1 
-can be made timing insensitive by replacing the clockwise relation 
-$\approx_l$ on traces with high-stutter equivalence. Re-examining the FSM of 
-Figure 1, the $l$-projections of the traces $T_1$ and $T_2$ produced by initial 
-states $\sigma_1$ and $\sigma_2$ respectively are both $\{(l,0)\}, \{(l,1)\}$, so 
-these traces are high-stutter equivalent and the FSM obeys the new formulation 
-of noninterference. Similarly, the traces given for the code segment in Figure 
-2 both have the $l$-projection
+equal. The formulation of noninterference in Equation 1 can be made timing 
+insensitive by replacing the clockwise relation $\approx_l$ on traces with 
+high-stutter equivalence. Re-examining the FSM of Figure 1, the $l$-projections 
+of the traces $T_1$ and $T_2$ produced by initial states $\sigma_1$ and 
+$\sigma_2$ respectively are both $\{(l,0)\}, \{(l,1)\}$, so these traces are 
+high-stutter equivalent and the FSM obeys the new formulation of 
+noninterference. Similarly, the traces given for the code segment in Listing 1 
+both have the $l$-projection
 $$
 \tt
-\{(req_2,1),(grant_2,0)\}, \{(req_2,1),(grant_2,1)\}, 
-\{(req_2,1),(grant_2,0)\}
+\{(req_2,1),(grant_2,0)\}, \{(req_2,1),(grant_2,1)\}, \{(req_2,1),(grant_2,0)\}
 $$
 and so this arbiter appears safe as well.
 
 \section{Enforcement}
 A great deal of work has been done on addressing timing channels in software 
-languages. Volpano and Smith prevent timing channels by requiring the program 
-to converge or diverge in the same number of steps for low-equivalent states. 
-Agat uses a bisimulation based approach to formulate timing sensitivity. 
-Askarov et. al. take an information theoretic approach and examine timing 
-channel capacity. Zhang et. al. use single-step noninterference to enforce 
-noninterference at each small step in evaluation of their semantics. 
+languages. These software timing sensitive noninterference systems require 
+extensions to a standard (timing insensitive) noninterference type system e.g. 
+by code transformation or by labeling the program counter. However, 
+noninterference at the hardware level enforces timing sensitivity for free. The 
+crucial difference is that in hardware, FSMs are described explicitly, and the 
+registers that implement FSM states are themselves variables that must be 
+labeled. This means that whenever state transitions depend on some high 
+variable and some low variable depends on the current state, there is a flow 
+from high to low.
 
-These software timing sensitive noninterference systems require extensions to a 
-standard (timing insensitive) noninterference type system e.g. by code 
-transformation or by labeling the program counter. However, noninterference at 
-the hardware level grants timing sensitivity for free. The crucial difference 
-is that in hardware, FSMs are described explicitly, and the registers that 
-implement FSM states are themselves variables that must be labeled. This means 
-that whenever state transitions depend on some high variable and some low 
-variable depends on the current state, there is a flow from high to low.
+\begin{figure}
+  \centering
+  \begin{subfigure}[b]{0.3\textwidth}
+    \includegraphics[width=0.98in]{arbiter_fsm.pdf}
+    \caption{Arbiter FSM}
+  \end{subfigure}
+  \begin{subfigure}[b]{0.3\textwidth}
+    \includegraphics[width=1.3in]{arbiter_fsm_grouped.pdf}
+    \caption{L-equivalence groupings }
+  \end{subfigure}
+  \begin{subfigure}[b]{0.3\textwidth}
+    \includegraphics[width=0.69in]{drawing.pdf}
+    \caption{L-equivalence digraph}
+  \end{subfigure}
+\end{figure}
+
+Therefore, a reasonable approach is to view FSMs more abstractly than as group 
+of assignments to register variables. Then, if all FSM traces produce the same 
+$l$-projection, it satisfies noninterference. As an example, Figure 2a shows a 
+pictorial representation of the FSM from the code segment in Listing 1. To 
+consider only the state transitions that an attacker at level $l$ can observe, 
+we begin by grouping together all the adjacent FSM states which are 
+$l$-equivalent as in Figure 2b. In this case, the transitions between $S_0$ and 
+$S_1$ can't be observed by the attacker, only the transitions between $S_0$ and 
+$S_2$ can. Finally, we use these sets of FSM states to produce a new directed 
+graph in Figure 2c. Since each node has at most a single outgoing edge, the 
+$l$-projections of all traces through the FSM are equivalent.
+
+This approach can be applied in general
+by viewing an FSM as a directed graph $F=(S,E)$ where the nodes $s\in S$ are 
+FSM states (not to be confused with states $\sigma$ which are mappings from 
+variables to values) and edges are state transitions of the form $(s_1,s_2)$ 
+indicating thatn $s_1$ can transition to $s_2$. (Note that in this model 
+the conditions on which state transitions happen are ignored). 
+
+We say that a state $s_1$ \emph{$l$-observably transitions to} a state $s_2$, 
+written $s_1 \rightsquigarrow_l s_2$ if $s_2$ is the nearest state along the 
+closure of state transitions from $s_1$ such that $s_1 \not\approx_l s_2$. Or 
+more formally,
+\begin{align*}
+  s_1 \rightsquigarrow s_2 \Longleftrightarrow
+    & s_1 \not\approx_l s_2 \wedge \\
+    & ((s_1,s_2)\in E \\
+    \vee & \left( (s_1,s)\in E \wedge s_1 \approx_l s\wedge s \rightsquigarrow s_2 \right)
+    )
+\end{align*}
+where $s_1 \approx s_2$ if the states $\sigma_1$ and $\sigma_2$ for each of 
+those FSM states are low equivalent.
+
+\input{fsm_syntax.tex}
+\input{types.tex}
+
+Figure 3 shows a simplified syntax for describing finite state machines. An FSM
+is a sequences of states $s$. States are pairs consiting of state transition
+tables $T_s$ and output tables $T_v$. A state transition table is a single case
+statement producing a next state. This guarantees that the next states are
+mutually exclusive and the FSM is deterministic. Output tables are a sequence
+of assignments to variables.
+
+Figure 4 shows a type system that enforces timing insensitive noninterference.
+The typing rule for states produces a set $L$ of the states that it can
+$l$-observably transition to. State transition tables produce two sets. $N$ is
+simply the set of states that can be transitioned to in the table and $M$ is a
+mapping from the states in the table to the sets of states that each of them
+can $l$-observably transition to. The rule for states produces $L$ by checking
+if it is $l$-equivalent to each state in $N$. If it isn't, it inserts that state
+into $L$, otherwise, it gets the $L$ set of that state from $M$.
+
+The three rules for output tables are used for determining if two states are 
+$l$-equivalent by producing a mapping from the variables it updates to the 
+big-step values of the expressions they are assigned. Finally, the rule for 
+FSMs checks that for each state, all of the states it can $l$-observably 
+transition to are $l$-equivalent. In other words, all outgoing transitions from 
+this state appear the same to the attacker.
+
+One flaw of this approach is that it is unlikely complete with respect to the 
+high-stutter-equivalent formulation of noninterference. Since it disregards the 
+conditions on which state transitions happen, extra information that could be 
+used to determine if an attacker visible transition could take place is lost. 
+It is also unclear how and how well the values of expressions can be determined 
+by the type system for the purpose of checking $l$-equivalence in the rule for 
+output tables.
 
 \end{document}

@@ -1,0 +1,66 @@
+\begin{figure}
+\[
+  \inferrule
+    {
+      s_i = (T_{si},T_{vi}) \\
+      \vdash T_s : N, M
+    }{
+      \vdash (T_s, T_v) : \{s_i| s_i\in N \wedge
+      T_{vi}\not\approx_l T_v
+      \vee(T_{vj} \approx_l T_v \wedge s_i \in M(s_j))\}
+    }
+\]
+
+\[
+  \inferrule
+  {
+    \vdash s_i : L_i
+  }{
+    \mathtt{case}(e)[s_1,\ldots,s_n] :
+    \{s_1,\ldots,s_n\},\{(s_1,L_1),\ldots,(s_n,L_n)\}
+  }
+\]
+
+\[
+  \inferrule
+  {
+    e_i \Downarrow v_i
+  }{
+    \vdash x_i=e_1,\ldots,x_n=e_n :
+    \{(x_i,v_i),\ldots,(x_n,v_n)\}
+  }
+\]
+
+\[
+  \inferrule
+  {
+    \vdash T_{v1} : U_1 \\ \vdash T_{v2} : U_2 \\ 
+    \forall x \in \{x_i|\Gamma(x_i)\sqsubseteq l\}.U_1(x)=U_2(x)
+  }{
+    T_{v1} \approx_l T_{v2}
+  }
+\]
+
+\[
+  \inferrule
+  {
+    \vdash T_{v1} : U_1 \\ \vdash T_{v2} : U_2 \\
+    \exists x \in \{x_i|\Gamma(x_i)\sqsubseteq l\}.U_1(x)\neq U_2(x)
+  }{
+    T_{v1} \not\approx_l T_{v2}
+  }
+\]
+
+\[
+  \inferrule
+  {
+    s_i = (T_{si}, T_{vi}) \\
+    \forall s_j,s_j \in \{s|s_i \rightsquigarrow_l s\}. T_{vj} \approx_l T_{vk}
+  }{
+    \vdash s_1,\ldots,s_n
+  }
+\]
+
+\label{fig:types}
+\caption{A Type System for Timing Insensitive Noninterference}
+\end{figure}
